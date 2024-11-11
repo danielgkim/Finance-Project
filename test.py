@@ -5,6 +5,8 @@
 import sqlite3
 from datetime import datetime
 import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
 
 class PersonalFinanceTracker:
     def __init__(self, db_name='finance.db'):
@@ -54,12 +56,32 @@ class PersonalFinanceTracker:
         self.conn.commit()
     
     def add_transaction(self, date, category, description, amount, trans_type):
+    # Adding transaction data
         cursor = self.conn.cursor()
         cursor.execute('''
         INSERT INTO transactions (date, category, description, amount, type)
         VALUES (?, ?, ?, ?, ?)
         ''', (date, category, description, amount, trans_type))
         self.conn.commit()
+
+        # Fetch all transaction data for regression (example fetching amounts and dates)
+        cursor.execute('SELECT amount FROM transactions ORDER BY date')
+        amounts = [row[0] for row in cursor.fetchall()]
+        dates = range(len(amounts))  # Using index as a proxy for dates for simplicity
+    
+        # Perform linear regression
+        X = np.array(dates).reshape(-1, 1)  # Dates as features
+        y = np.array(amounts)  # Amounts as targets
+        model = LinearRegression().fit(X, y)
+    
+        # Save regression coefficients if needed
+       # intercept = model.intercept_
+        #slope = model.coef_[0]
+       # cursor.execute('''
+        #INSERT INTO regression_results (slope, intercept)
+        #VALUES (?, ?)
+        #''', (slope, intercept))
+        #self.conn.commit()
     
     def add_category(self, name, category_type):
         cursor = self.conn.cursor()
@@ -137,7 +159,7 @@ def main():
     tracker.add_transaction('2024-10-01', 'Salary', 'Monthly salary', 5000, 'income')
     tracker.add_transaction('2024-10-01', 'Streams', 'Distrokid', 5000, 'income')
     tracker.add_transaction('2024-10-02', 'Music', 'Music Video', 150, 'expense')
-    tracker.add_transaction('2024-10-03', 'Transport', 'Bus fare', 30, 'expense')
+    tracker.add_transaction('2024-10-03', 'Transport', 'Promo', 30, 'expense')
     
     # Get current balance
     print(f"Current balance: ${tracker.get_balance():.2f}")
